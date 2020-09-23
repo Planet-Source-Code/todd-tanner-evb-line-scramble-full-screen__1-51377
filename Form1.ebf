@@ -1,0 +1,138 @@
+VERSION 5.00
+Begin VB.Form Form1 
+   Appearance      =   0  'Flat
+   BackColor       =   &H00000000&
+   BorderStyle     =   1  'Fixed Single
+   Caption         =   "Line Scramble"
+   ClientHeight    =   3510
+   ClientLeft      =   45
+   ClientTop       =   825
+   ClientWidth     =   3480
+   ClipControls    =   0   'False
+   ForeColor       =   &H80000008&
+   FormResize      =   1  'vbFormFullNoResize
+   ScaleHeight     =   3510
+   ScaleWidth      =   3480
+   ShowOK          =   -1  'True
+   Begin VBCE.Timer Timer2 
+      Left            =   1560
+      Top             =   1560
+      _cx             =   847
+      _cy             =   847
+      Enabled         =   -1  'True
+      Interval        =   2500
+   End
+   Begin VBCE.Timer Timer1 
+      Left            =   1080
+      Top             =   1560
+      _cx             =   847
+      _cy             =   847
+      Enabled         =   0   'False
+      Interval        =   0
+   End
+End
+Attribute VB_Name = "Form1"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = False
+Option Explicit
+
+Dim mvarFullScreen As Boolean
+Dim mvarPointsX() As Long
+Dim mvarPointsY() As Long
+Dim mvarDifX() As Long
+Dim mvarDifY() As Long
+Dim mvarNumPoints As Long
+Dim mvarXLimit As Long
+Dim mvarYLimit As Long
+Dim mvarSpeed As Long
+
+Private Sub Form_Load()
+    Timer1.Interval = 1 ' How often to update lines
+    mvarNumPoints = 3 ' Number of vertices
+    ReDim mvarPointsX(0)
+    ReDim mvarPointsY(0)
+    ReDim mvarDifX(0)
+    ReDim mvarDifY(0)
+    mvarXLimit = 240
+    mvarYLimit = 320
+    mvarSpeed = 2 ' Affects Speed of movement
+    Me.SetScale 0, 0, mvarXLimit, mvarYLimit
+    mvarFullScreen = True
+    FullScreen Me.hwnd, True
+    Timer1.Enabled = True
+End Sub
+Private Sub Form_MouseDown(Button As Integer, Shift As Integer, x As Single, y As Single)
+    mvarFullScreen = Not mvarFullScreen
+    FullScreen Me.hwnd, mvarFullScreen
+End Sub
+Private Sub Form_OKClick()
+    App.End
+End Sub
+Private Sub RefreshPoints()
+    Dim i As Long
+    ' Redim Points if mvarNumPoints was changed by user
+    If UBound(mvarPointsX) <> mvarNumPoints Then
+        ReDim Preserve mvarPointsX(mvarNumPoints)
+        ReDim Preserve mvarPointsY(mvarNumPoints)
+        ReDim Preserve mvarDifX(mvarNumPoints)
+        ReDim Preserve mvarDifY(mvarNumPoints)
+    End If
+
+    ' Change the Forecolor once in a while
+    i = GetRand(1, 10)
+    Select Case i
+        Case 1
+            Me.ForeColor = RGB(GetRand(0, 255), GetRand(0, 255), GetRand(0, 255))
+    End Select
+    
+    ' Adjust line coordinates
+    For i = 1 To UBound(mvarPointsX)
+        If mvarPointsX(i) = 0 And mvarPointsY(i) = 0 Then
+            mvarPointsX(i) = GetRand(1, mvarXLimit)
+            mvarPointsY(i) = GetRand(1, mvarYLimit)
+            mvarDifX(i) = GetRand(1, mvarXLimit)
+            mvarDifY(i) = GetRand(1, mvarYLimit)
+        Else
+            If mvarPointsX(i) < mvarDifX(i) Then
+                mvarPointsX(i) = mvarPointsX(i) + mvarSpeed
+                If mvarPointsX(i) >= mvarDifX(i) Then mvarPointsX(i) = mvarDifX(i)
+            ElseIf mvarPointsX(i) > mvarDifX(i) Then
+                mvarPointsX(i) = mvarPointsX(i) - mvarSpeed
+                If mvarPointsX(i) <= mvarDifX(i) Then mvarPointsX(i) = mvarDifX(i)
+            Else
+                mvarDifX(i) = GetRand(0, mvarXLimit)
+            End If
+            If mvarPointsY(i) < mvarDifY(i) Then
+                mvarPointsY(i) = mvarPointsY(i) + mvarSpeed
+                If mvarPointsY(i) >= mvarDifY(i) Then mvarPointsY(i) = mvarDifY(i)
+            ElseIf mvarPointsY(i) > mvarDifY(i) Then
+                mvarPointsY(i) = mvarPointsY(i) - mvarSpeed
+                If mvarPointsY(i) <= mvarDifY(i) Then mvarPointsY(i) = mvarDifY(i)
+            Else
+                mvarDifY(i) = GetRand(0, mvarYLimit)
+            End If
+        End If
+        If i < UBound(mvarPointsX) Then
+            Me.DrawLine mvarPointsX(i), mvarPointsY(i), mvarPointsX(i + 1), mvarPointsY(i + 1)
+        Else
+            Me.DrawLine mvarPointsX(i), mvarPointsY(i), mvarPointsX(1), mvarPointsY(1)
+        End If
+    Next i
+End Sub
+Private Sub Form_Unload(Cancel As Integer)
+    Timer1.Enabled = False
+    Timer2.Enabled = False
+    FullScreen Me.hwnd, False
+End Sub
+Private Sub Timer1_Timer()
+    RefreshPoints
+End Sub
+Private Sub Timer2_Timer()
+    Me.Cls ' Clear the screen every 2.5 seconds
+End Sub
+Private Function GetRand(ByVal intMin As Long, ByVal intMax As Long) As Long
+    Randomize
+    GetRand = Int(Rnd() * (intMax - intMin + 1)) + intMin
+End Function
